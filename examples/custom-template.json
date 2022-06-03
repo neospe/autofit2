@@ -1,0 +1,18 @@
+{
+    "mod": {
+        "en": {
+            "base": {
+                "model file": "models-in/example-mod-de",
+                "model type": "bert",
+                "pretraining task": "offensive language detection",
+                "downstream task": "offensive language detection"
+            },
+            "targets": {
+                "custom": {
+                    "options": {"train embedding": false, "base clf": "98sdfkjhw3r8sf"},
+                    "loader": ["en_hate1()"]
+                }
+            }
+        }
+    }
+}
