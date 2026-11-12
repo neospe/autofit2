@@ -25,8 +25,7 @@ import random
 import json
 import sys
 import os
-os.environ['DATALAKE_ADDR'] = '192.168.0.8:27017'
-from dataload.loader import *
+from dataload.loader import *  # set DATALAKE_ADDR to load from the data lake
 from dataload.preproc import *
 from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
