@@ -10,6 +10,33 @@ Few-shot text classification. Massively multilingual (50+ languages), fully auto
 *   **Automated Pipeline:** End-to-end preprocessing, fine-tuning, evaluation, and deployment from a single JSON config.
 *   **Reproducibility & Transparency:** JSON-based configuration, model card generation, and CO₂ emission tracking.
 
+## Quickstart
+
+Train an English moderation model on a 2% sample of [Davidson et al.](https://github.com/t-davidson/hate-speech-and-offensive-language), with one benchmark target:
+
+```bash
+git clone https://github.com/neospe/autofit2 && cd autofit2
+pip install -r requirements.txt
+git clone https://github.com/t-davidson/hate-speech-and-offensive-language data/en/hate-speech-and-offensive-language
+cp examples/demo.json .  # the config is moved to history/ after the run
+python train.py demo.json
+```
+
+Runs on CUDA, Apple silicon (MPS) or CPU; about 12 minutes on an M1. The base model (`all-MiniLM-L6-v2`) is downloaded on the first run.
+
+Output:
+*   `history/demo.log`: accuracy and F1 per target.
+*   `models-out/demo-mod-en.json`: model card with benchmarks, self-consistency, emissions and bias scores.
+*   `models-out/demo-mod-en.mar`: model archive for TorchServe.
+*   `models-in/demo-mod-en`: the fine-tuned embedding, usable as a base model for custom targets.
+
+Or in a container:
+
+```bash
+docker build -t autofit2 .
+docker run --rm -v "$PWD":/service autofit2 python train.py demo.json
+```
+
 ## Usage
 
 **1. Prepare Data**
