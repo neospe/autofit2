@@ -1,10 +1,9 @@
-git+https://github.com/neospe/sentence-transformers.git
+git+https://github.com/neospe/sentence-transformers.git@ear
 git+https://github.com/neospe/dataload.git
 torch-model-archiver
 codecarbon
 openpyxl
-sklearn
-pymongo
+scikit-learn
 joblib
 pandas
 numpy
