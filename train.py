@@ -31,7 +31,6 @@ from warnings import simplefilter
 simplefilter(action='ignore', category=FutureWarning)
 
 EPOCHS = 3
-EMB_DIM = 384  # currently all base models share the same size -> **TODO** generalize: determine emb dim from model object
 LOG_PATH = Path('history')  # path for all configs + logs
 OUTPUT_PATH = Path('models-out')  # path for all outputs
 BASE_PATH = Path('models-in')  # path to base model store
@@ -319,16 +318,17 @@ if __name__ == "__main__":
 
                     if reg == True:  # for 'all' (excluding nonreg) + benchmarks + custom models
                         run_id = binascii.hexlify(os.urandom(8)).decode('utf-8')
-                        
-                        X_train = np.memmap(run_id+'_train', dtype='float32', mode='w+', shape=(len(x_train), EMB_DIM))
-                        X_train[:] = model.encode(x_train, device='cuda:0')
+                        emb_dim = model.get_sentence_embedding_dimension()
+
+                        X_train = np.memmap(run_id+'_train', dtype='float32', mode='w+', shape=(len(x_train), emb_dim))
+                        X_train[:] = model.encode(x_train)  # cuda if available
                         del X_train  # flush memory changes to disk by deleting the object
-                        X_train = np.memmap(run_id+'_train', dtype='float32', mode='r', shape=(len(x_train), EMB_DIM))
-                        
-                        X_eval = np.memmap(run_id+'_eval', dtype='float32', mode='w+', shape=(len(x_eval), EMB_DIM))
-                        X_eval[:] = model.encode(x_eval, device='cuda:0')
+                        X_train = np.memmap(run_id+'_train', dtype='float32', mode='r', shape=(len(x_train), emb_dim))
+
+                        X_eval = np.memmap(run_id+'_eval', dtype='float32', mode='w+', shape=(len(x_eval), emb_dim))
+                        X_eval[:] = model.encode(x_eval)
                         del X_eval
-                        X_eval = np.memmap(run_id+'_eval', dtype='float32', mode='r', shape=(len(x_eval), EMB_DIM))
+                        X_eval = np.memmap(run_id+'_eval', dtype='float32', mode='r', shape=(len(x_eval), emb_dim))
 
                         #print('X_train.shape:', X_train.shape)
                         #print('X_eval.shape:', X_eval.shape)
