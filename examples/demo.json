@@ -1,0 +1,24 @@
+{
+    "mod": {
+        "en": {
+            "base": {
+                "model file": "sentence-transformers/all-MiniLM-L6-v2",
+                "model type": "bert",
+                "pretraining task": "sentence similarity",
+                "downstream task": "binary text classification"
+            },
+            "targets": {
+                "benchmark 1": {
+                    "description": "Davidson et al. - Automated Hate Speech Detection and the Problem of Offensive Language",
+                    "link": "https://arxiv.org/abs/1703.04009",
+                    "options": {"sample ratio": 0.02},
+                    "loader": ["en_hate1()"]
+                },
+                "all": {
+                    "options": {"sample ratio": 0.02},
+                    "loader": ["en_hate1()"]
+                }
+            }
+        }
+    }
+}
