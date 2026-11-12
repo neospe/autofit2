@@ -272,7 +272,7 @@ if __name__ == "__main__":
                         eval_data = data
                     else:
                         train_data = data[:int(len(data)*0.7)]  # 70-30 for any single dataset without its own defined train-test split
-                        eval_data = data[int(len(data)*0.3):]
+                        eval_data = data[int(len(data)*0.7):]
                 
                 # map labels
                 x_train = [item['text'] for item in train_data]
