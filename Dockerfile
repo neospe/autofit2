@@ -9,7 +9,7 @@ COPY requirements.txt ./
 
 RUN set -eux; \
 	apt-get update; \
-	apt-get install -y --no-install-recommends gcc python3-dev; \
+	apt-get install -y --no-install-recommends gcc python3-dev git; \
   apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
 	rm -rf /var/lib/apt/lists/*; \
   python -m pip install --upgrade pip; \
