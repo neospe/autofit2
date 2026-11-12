@@ -38,7 +38,7 @@ BASE_PATH = Path('models-in')  # path to base model store
 EVAL_PATH = Path('eval-data')  # path to evaluation data
 ASSETS_PATH = Path('packaging')  # path to custom serving handler
 
-task_labels_mapping = {'mod': MAPPING_AGGRESSION_BINARY}
+task_labels_mapping = {'mod': MAPPING_BINARYCLASS}
 
 def set_seed(seed):
     random.seed(seed)
