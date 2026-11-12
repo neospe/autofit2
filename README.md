@@ -72,16 +72,23 @@ The `"targets"` dictionary supports three specific key types:
 
 ### Target Options
 
-Each entry in the `"targets"` dictionary supports the following keys:
+Each entry in the `"targets"` dictionary supports `description`, `link`, `loader` and an optional `options` object:
+
+```json
+"custom": {
+  "options": {"train embedding": false, "base clf": "98sdfkjhw3r8sf"},
+  "loader": ["en_hate1()"]
+}
+```
 
 | Key | Type | Description |
 | :--- | :--- | :--- |
 | `description` | `string` | Free-form description of the target. |
 | `link` | `string` | URL to source data or documentation. |
-| `train embedding` | `bool` | Set to `true` to fine-tune embeddings during training. |
-| `base clf` | `string` | ID string pointing to a `.joblib` file located in `BASE_PATH`. Must match exactly. |
-| `sample ratio` | `float` | Random sample of total data for full training (e.g., `0.5` = 50%). |
-| `embedding sample ratio` | `float` | Random sample of data used **only** for embedding fine-tuning (e.g., `0.1` = 10%). |
+| `options` → `train embedding` | `bool` | Fine-tune embeddings during training (default: `true`). |
+| `options` → `base clf` | `string` | ID string pointing to a `.joblib` file located in `BASE_PATH`. Must match exactly. |
+| `options` → `sample ratio` | `float` | Random sample of total data for full training (e.g., `0.5` = 50%). |
+| `options` → `embedding sample ratio` | `float` | Random sample of data used **only** for embedding fine-tuning (e.g., `0.1` = 10%). |
 
 ### Loaders
 
