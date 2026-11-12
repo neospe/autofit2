@@ -157,7 +157,7 @@ if __name__ == "__main__":
     if '"all":' not in config_str and '"custom":' not in config_str:
         print('config error: neither "all" nor "custom" target found.')
         exit(0)
-    if '"all":' in config_str and '"benchmark ' in config_str:
+    if '"all":' in config_str:  # benchmarks are optional
         train_base_model = True
     else:
         train_base_model = False
