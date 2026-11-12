@@ -475,7 +475,7 @@ if __name__ == "__main__":
 
                     # cleanup
                     if tmp_path:
-                        Path(tmp_path).unlink()
+                        run(['rm', '-rf', tmp_path])
                     if Path('default.joblib').exists():
                         Path('default.joblib').unlink()
 
