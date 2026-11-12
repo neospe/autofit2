@@ -172,6 +172,9 @@ if __name__ == "__main__":
     if not OUTPUT_PATH.exists():
         OUTPUT_PATH.mkdir()
 
+    if not BASE_PATH.exists():
+        BASE_PATH.mkdir()
+
     # setup logging for base model training
     if train_base_model:
         CURRENT_LOG = Path(CONFIG_PATH.stem+'.log')
@@ -488,4 +491,5 @@ if __name__ == "__main__":
     
     # move config + log to history
     Path(CONFIG_PATH).rename(Path(LOG_PATH / CONFIG_PATH.name))
-    Path(str(CONFIG_PATH).replace('.json', '.log')).rename(Path(LOG_PATH / CONFIG_PATH.name.replace('.json', '.log')))
+    if train_base_model and CURRENT_LOG.exists():
+        CURRENT_LOG.rename(Path(LOG_PATH / CURRENT_LOG.name))
