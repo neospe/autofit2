@@ -298,6 +298,7 @@ if __name__ == "__main__":
                 else:
                     regularization = [True]  # all other targets (single dataset benchmarks, customer models) are regularized by default
                 scores_list = []
+                emissions = None  # no emissions tracked without embedding training
 
                 for reg in regularization:
 
