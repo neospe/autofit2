@@ -201,7 +201,9 @@ if __name__ == "__main__":
                     embedding_data_ratio = options.get('embedding sample ratio', 1.0)
                     data_ratio = options.get('sample ratio', 1.0)
                     base_clf = options.get('base clf', False)
+                    attention_regularization = options.get('attention regularization', False)
                 else:
+                    attention_regularization = False
                     train_embedding = True
                     base_clf = False
                     embedding_data_ratio = 1.0
@@ -253,79 +255,76 @@ if __name__ == "__main__":
                     train_examples = train_examples[:int(len(train_examples)*embedding_data_ratio)]  # use only part of the data for embedding fine-tuning
                     train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
 
-                regularization = [True]  # all targets are regularized by default
                 bias = None
                 emissions = None  # no emissions tracked without embedding training
 
-                for reg in regularization:
+                ###### FINETUNE MODEL
 
-                    ###### FINETUNE MODEL
+                model = SentenceTransformer(BASEMODEL_FILE)
 
-                    model = SentenceTransformer(BASEMODEL_FILE)
+                if train_embedding:
+                    # attention entropy regularization (EAR) is off by default: it does not prevent shortcuts and costs pretrained information
+                    train_loss = losses.CosineSimilarityLoss(model, regularization=attention_regularization)
 
+                    # track emissions start
+                    tracker = OfflineEmissionsTracker(country_iso_code='AUT', save_to_file=False)
+                    tracker.start()
+                        
+                    # fit embedding
+                    model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=EPOCHS, warmup_steps=10, show_progress_bar=True)
+
+                    # track emissions end
+                    emissions = tracker.stop()  # Emissions as CO₂-equivalents [CO₂eq], in kg
+                    del tracker
+
+                run_id = binascii.hexlify(os.urandom(8)).decode('utf-8')
+                emb_dim = model.get_sentence_embedding_dimension()
+
+                X_train = np.memmap(run_id+'_train', dtype='float32', mode='w+', shape=(len(x_train), emb_dim))
+                X_train[:] = model.encode(x_train)  # cuda if available
+                del X_train  # flush memory changes to disk by deleting the object
+                X_train = np.memmap(run_id+'_train', dtype='float32', mode='r', shape=(len(x_train), emb_dim))
+
+                X_eval = np.memmap(run_id+'_eval', dtype='float32', mode='w+', shape=(len(x_eval), emb_dim))
+                X_eval[:] = model.encode(x_eval)
+                del X_eval
+                X_eval = np.memmap(run_id+'_eval', dtype='float32', mode='r', shape=(len(x_eval), emb_dim))
+
+                #print('X_train.shape:', X_train.shape)
+                #print('X_eval.shape:', X_eval.shape)
+
+                if base_clf != False:
+                    clf = load(BASE_PATH / base_clf+'.joblib')
+                    clf.warm_start = True
+                else:
+                    clf = LogisticRegression(max_iter=500, n_jobs=8)
+                        
+                # fit classifier
+                clf.fit(X_train, y_train)
+
+                # save embedding + classifier
+                if not target_name.startswith ('benchmark '):  # for 'all' + custom models
                     if train_embedding:
-                        train_loss = losses.CosineSimilarityLoss(model, regularization=reg)
+                        model.save(path=str(OUTPUT_FILE), model_name=MODEL_NAME, create_model_card=False)
+                    dump(clf, CLF_FILE)
 
-                        # track emissions start
-                        tracker = OfflineEmissionsTracker(country_iso_code='AUT', save_to_file=False)
-                        tracker.start()
+                ###### EVALUATE MODEL
+
+                y_pred_eval_sgd = clf.predict(X_eval)
+                test_acc = accuracy_score(y_eval, y_pred_eval_sgd)
+                test_f1 = f1_score(y_eval, y_pred_eval_sgd)
+
+                if not target_name.startswith ('benchmark '):  # for 'all' + custom models
+                    if test_acc <= 0.9 or test_f1 <= 0.9:
+                        print('WARNING: low self-consistency for', OUTPUT_FILE, 'target:', target_name)
+                        print('test_acc:', test_acc, 'test_f1:', test_f1)
+                    self_consistency = [test_acc, test_f1]
                         
-                        # fit embedding
-                        model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=EPOCHS, warmup_steps=10, show_progress_bar=True)
+                # cleanup
+                run(['rm', run_id+'_train', run_id+'_eval'])
 
-                        # track emissions end
-                        emissions = tracker.stop()  # Emissions as CO₂-equivalents [CO₂eq], in kg
-                        del tracker
-
-                    if reg == True:  # for 'all' (excluding nonreg) + benchmarks + custom models
-                        run_id = binascii.hexlify(os.urandom(8)).decode('utf-8')
-                        emb_dim = model.get_sentence_embedding_dimension()
-
-                        X_train = np.memmap(run_id+'_train', dtype='float32', mode='w+', shape=(len(x_train), emb_dim))
-                        X_train[:] = model.encode(x_train)  # cuda if available
-                        del X_train  # flush memory changes to disk by deleting the object
-                        X_train = np.memmap(run_id+'_train', dtype='float32', mode='r', shape=(len(x_train), emb_dim))
-
-                        X_eval = np.memmap(run_id+'_eval', dtype='float32', mode='w+', shape=(len(x_eval), emb_dim))
-                        X_eval[:] = model.encode(x_eval)
-                        del X_eval
-                        X_eval = np.memmap(run_id+'_eval', dtype='float32', mode='r', shape=(len(x_eval), emb_dim))
-
-                        #print('X_train.shape:', X_train.shape)
-                        #print('X_eval.shape:', X_eval.shape)
-
-                        if base_clf != False:
-                            clf = load(BASE_PATH / base_clf+'.joblib')
-                            clf.warm_start = True
-                        else:
-                            clf = LogisticRegression(max_iter=500, n_jobs=8)
-                        
-                        # fit classifier
-                        clf.fit(X_train, y_train)
-
-                        # save embedding + classifier
-                        if not target_name.startswith ('benchmark '):  # for 'all' + custom models
-                            if train_embedding:
-                                model.save(path=str(OUTPUT_FILE), model_name=MODEL_NAME, create_model_card=False)
-                            dump(clf, CLF_FILE)
-
-                        ###### EVALUATE MODEL
-
-                        y_pred_eval_sgd = clf.predict(X_eval)
-                        test_acc = accuracy_score(y_eval, y_pred_eval_sgd)
-                        test_f1 = f1_score(y_eval, y_pred_eval_sgd)
-
-                        if not target_name.startswith ('benchmark '):  # for 'all' + custom models
-                            if test_acc <= 0.9 or test_f1 <= 0.9:
-                                print('WARNING: low self-consistency for', OUTPUT_FILE, 'target:', target_name)
-                                print('test_acc:', test_acc, 'test_f1:', test_f1)
-                            self_consistency = [test_acc, test_f1]
-                        
-                        # cleanup
-                        run(['rm', run_id+'_train', run_id+'_eval'])
-
-                    if not target_name.startswith ('benchmark '):  # for 'all' + custom models: bias against the base model
-                        bias = term_bias(model, SentenceTransformer(BASEMODEL_FILE), clf, eval_corpus)
+                if not target_name.startswith ('benchmark '):  # for 'all' + custom models: bias against the base model
+                    bias = term_bias(model, SentenceTransformer(BASEMODEL_FILE), clf, eval_corpus)
 
                 ###### GENERATE MODEL CARD
 

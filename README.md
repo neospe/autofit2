@@ -116,6 +116,7 @@ Each entry in the `"targets"` dictionary supports `description`, `link`, `loader
 | `options` → `base clf` | `string` | ID string pointing to a `.joblib` file located in `BASE_PATH`. Must match exactly. |
 | `options` → `sample ratio` | `float` | Random sample of total data for full training (e.g., `0.5` = 50%). |
 | `options` → `embedding sample ratio` | `float` | Random sample of data used **only** for embedding fine-tuning (e.g., `0.1` = 10%). |
+| `options` → `attention regularization` | `bool` | Entropy-based attention regularization (EAR) during embedding fine-tuning (default: `false`). It flattens attention but does not keep the model from using shortcut tokens, and it costs pretrained information. |
 
 ### Loaders
 
