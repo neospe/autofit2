@@ -116,6 +116,8 @@ Each entry in the `"targets"` dictionary supports `description`, `link`, `loader
 | `options` → `base clf` | `string` | ID string pointing to a `.joblib` file located in `BASE_PATH`. Must match exactly. |
 | `options` → `sample ratio` | `float` | Random sample of total data for full training (e.g., `0.5` = 50%). |
 | `options` → `embedding sample ratio` | `float` | Random sample of data used **only** for embedding fine-tuning (e.g., `0.1` = 10%). |
+| `options` → `learning rate` | `float` | Learning rate for embedding fine-tuning (default: `2e-5`). Lower values keep more of the pretrained model, which helps when the embedding is reused for other tasks, but make shortcuts more likely; combine with `mask shortcuts`. |
+| `options` → `mask shortcuts` | `bool` | Detect-then-mask (default: `false`): after a first fine-tune, the 50 words whose received attention grew most are checked against wordlists of legitimate offense cues in `wordlists/<lang>/` (plain text, one word per line, e.g. profanity, slur and insult lists); identity terms from `eval-data/<lang>-terms.txt` never count as legitimate. The other words are removed from the training texts and the embedding is fine-tuned again (about twice the training time). The model card lists masked and kept words. Removes additive shortcuts; it does not remove bias in the labels of legitimate words. |
 | `options` → `attention regularization` | `bool` | Entropy-based attention regularization (EAR) during embedding fine-tuning (default: `false`). It flattens attention but does not keep the model from using shortcut tokens, and it costs pretrained information. |
 
 ### Loaders

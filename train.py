@@ -23,6 +23,7 @@ import secrets
 import random
 import json
 import sys
+import re
 import os
 from dataload.loader import *  # set DATALAKE_ADDR to load from the data lake
 from dataload.preproc import *
@@ -35,6 +36,12 @@ OUTPUT_PATH = Path('models-out')  # path for all outputs
 BASE_PATH = Path('models-in')  # path to base model store
 EVAL_PATH = Path('eval-data')  # path to evaluation data
 ASSETS_PATH = Path('packaging')  # path to custom serving handler
+WORDLIST_PATH = Path('wordlists')  # legitimate offense cues per language (profanity, slurs, insults), one word per line
+
+MASK_CANDIDATES = 50  # shortcut masking: words with the largest attention growth that are checked against the wordlists
+MASK_MIN_COUNT = 10  # minimum occurrences of a word in the detection sample
+DETECT_SAMPLE = 3000  # training texts used for detection
+WORD = re.compile(r"[\w'#@-]+")
 
 task_labels_mapping = {'mod': MAPPING_BINARYCLASS}
 
@@ -66,6 +73,77 @@ def sentence_pairs_generation(sentences, labels, pairs):
     
         # return a 2-tuple of our sentence pairs and labels
     return (pairs)
+
+def fit_embedding(base_model_file, x, y, data_ratio, attention_regularization, learning_rate):
+    """contrastive fine-tuning on sentence pairs"""
+    examples = []
+    for _ in range(5):
+        examples = sentence_pairs_generation(np.array(x), np.array(y), examples)
+    examples = examples[:int(len(examples)*data_ratio)]  # use only part of the data for embedding fine-tuning
+    model = SentenceTransformer(base_model_file)
+    # attention entropy regularization (EAR) is off by default: it does not prevent shortcuts and costs pretrained information
+    loss = losses.CosineSimilarityLoss(model, regularization=attention_regularization)
+    model.fit(train_objectives=[(DataLoader(examples, shuffle=True, batch_size=16), loss)], epochs=EPOCHS, warmup_steps=10,
+              show_progress_bar=True, optimizer_params={'lr': learning_rate})
+    return model
+
+
+@torch.no_grad()
+def received_by_word(model, texts, batch_size=32):
+    """mean share of the attention that each word (lowercased) receives in a text: mean over layers, heads and query
+    tokens, normalized over the non-special tokens; and the number of occurrences"""
+    model.eval()
+    totals, counts = defaultdict(float), defaultdict(int)
+    for i in range(0, len(texts), batch_size):
+        chunk = texts[i:i+batch_size]
+        enc = model.tokenizer(chunk, padding=True, truncation=True, max_length=model.max_seq_length, return_tensors='pt',
+                              return_offsets_mapping=True, return_special_tokens_mask=True)
+        offsets, special = enc.pop('offset_mapping'), enc.pop('special_tokens_mask')
+        features = {k: v.to(model.device) for k, v in enc.items()}
+        attentions = torch.stack(model[0](features, output_attentions=True)['attentions'])  # L x B x H x S x S
+        mask = features['attention_mask'].float()
+        a = attentions.mean((0, 2))  # B x S x S
+        received = ((a * mask[:, :, None]).sum(1) / mask.sum(1, keepdim=True)).cpu()
+        received = received * ((mask.cpu() > 0) & (special == 0))
+        received = received / received.sum(1, keepdim=True).clamp_min(1e-12)
+        for b, text in enumerate(chunk):
+            for m in WORD.finditer(text):
+                word = m.group().lower().strip("'#@-")
+                if word:
+                    totals[word] += sum(float(received[b, j]) for j, (start, end) in enumerate(offsets[b].tolist())
+                                        if end > start and start < m.end() and end > m.start())
+                    counts[word] += 1
+    return {w: totals[w] / counts[w] for w in totals}, counts
+
+
+def load_whitelist(lang):
+    """legitimate offense cues: every file in WORDLIST_PATH/<lang> (all languages for 'multi'), one word per line"""
+    files = [f for f in (WORDLIST_PATH.glob('*/*') if lang == 'multi' else (WORDLIST_PATH / lang).glob('*')) if f.is_file()]
+    words = set()
+    for f in files:
+        with open(f, 'r', encoding='utf-8', errors='ignore') as fh:
+            words |= {line.strip().lower() for line in fh if line.strip() and ' ' not in line.strip()}
+    return words
+
+
+def detect_shortcuts(model, base_model, texts, whitelist, identity):
+    """detect-then-mask: words whose received attention grew most during fine-tuning are shortcut candidates; those in
+    the wordlists (legitimate offense cues) are kept, identity terms never count as legitimate, the rest is masked"""
+    texts = random.sample(texts, min(len(texts), DETECT_SAMPLE))
+    shares, counts = received_by_word(model, texts)
+    shares_base, _ = received_by_word(base_model, texts)
+    growth = {w: shares[w] / shares_base[w] for w in shares if counts[w] >= MASK_MIN_COUNT and shares_base.get(w)}
+    candidates = sorted(growth, key=growth.get, reverse=True)[:MASK_CANDIDATES]
+    listed = lambda w: w in whitelist or (w.endswith('s') and w[:-1] in whitelist) or (w.endswith('es') and w[:-2] in whitelist)
+    legitimate = [w for w in candidates if w not in identity and listed(w)]
+    return {'masked': [w for w in candidates if w not in legitimate], 'legitimate': legitimate,
+            'attention growth': {w: round(growth[w], 3) for w in candidates}}
+
+
+def mask_words(texts, words):
+    words = set(words)
+    return [' '.join(w for w in text.split(' ') if re.sub(r"[^\w']", '', w.lower()) not in words) for text in texts]
+
 
 @torch.no_grad()
 def received_share(model, text, term):
@@ -202,8 +280,12 @@ if __name__ == "__main__":
                     data_ratio = options.get('sample ratio', 1.0)
                     base_clf = options.get('base clf', False)
                     attention_regularization = options.get('attention regularization', False)
+                    learning_rate = options.get('learning rate', 2e-5)
+                    mask_shortcuts = options.get('mask shortcuts', False)
                 else:
                     attention_regularization = False
+                    learning_rate = 2e-5
+                    mask_shortcuts = False
                     train_embedding = True
                     base_clf = False
                     embedding_data_ratio = 1.0
@@ -247,35 +329,35 @@ if __name__ == "__main__":
                 x_eval = [item['text'] for item in eval_data]
                 y_eval = [labels_mapping[item['label']] for item in eval_data]
 
-                # generate sentence pairs
-                if train_embedding:
-                    train_examples = []
-                    for x in range(5):
-                        train_examples = sentence_pairs_generation(np.array(x_train), np.array(y_train), train_examples)
-                    train_examples = train_examples[:int(len(train_examples)*embedding_data_ratio)]  # use only part of the data for embedding fine-tuning
-                    train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
-
                 bias = None
+                shortcuts = None
                 emissions = None  # no emissions tracked without embedding training
 
                 ###### FINETUNE MODEL
 
-                model = SentenceTransformer(BASEMODEL_FILE)
-
                 if train_embedding:
-                    # attention entropy regularization (EAR) is off by default: it does not prevent shortcuts and costs pretrained information
-                    train_loss = losses.CosineSimilarityLoss(model, regularization=attention_regularization)
-
                     # track emissions start
                     tracker = OfflineEmissionsTracker(country_iso_code='AUT', save_to_file=False)
                     tracker.start()
-                        
-                    # fit embedding
-                    model.fit(train_objectives=[(train_dataloader, train_loss)], epochs=EPOCHS, warmup_steps=10, show_progress_bar=True)
+
+                    model = fit_embedding(BASEMODEL_FILE, x_train, y_train, embedding_data_ratio, attention_regularization, learning_rate)
+
+                    if mask_shortcuts:  # detect-then-mask: remove shortcut words from the training texts and fine-tune again
+                        whitelist = load_whitelist(lang)
+                        if not whitelist:
+                            print('config error: "mask shortcuts" needs wordlists of legitimate offense cues in', WORDLIST_PATH / lang)
+                            exit(0)
+                        identity = {w.lower() for term, _ in eval_corpus for w in WORD.findall(term)}
+                        shortcuts = detect_shortcuts(model, SentenceTransformer(BASEMODEL_FILE), x_train, whitelist, identity)
+                        print('masked shortcut words:', shortcuts['masked'])
+                        x_train = mask_words(x_train, shortcuts['masked'])
+                        model = fit_embedding(BASEMODEL_FILE, x_train, y_train, embedding_data_ratio, attention_regularization, learning_rate)
 
                     # track emissions end
                     emissions = tracker.stop()  # Emissions as CO₂-equivalents [CO₂eq], in kg
                     del tracker
+                else:
+                    model = SentenceTransformer(BASEMODEL_FILE)
 
                 run_id = binascii.hexlify(os.urandom(8)).decode('utf-8')
                 emb_dim = model.get_sentence_embedding_dimension()
@@ -375,6 +457,8 @@ if __name__ == "__main__":
                         model_card['model info']['emissions'] = emissions
                         model_card.setdefault('benchmarks', {})['Self-consistency'] = {'scores': self_consistency}
                         model_card['bias'] = bias
+                        if shortcuts:
+                            model_card['shortcut masking'] = shortcuts
 
                     # save model card
                     with open(str(OUTPUT_FILE)+'.json', 'w', encoding='utf-8') as f:
