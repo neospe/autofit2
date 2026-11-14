@@ -26,7 +26,7 @@ Runs on CUDA, Apple silicon (MPS) or CPU; about 12 minutes on an M1. The base mo
 
 Output:
 *   `history/demo.log`: accuracy and F1 per target.
-*   `models-out/demo-mod-en.json`: model card with benchmarks, self-consistency, emissions and bias scores.
+*   `models-out/demo-mod-en.json`: model card with benchmarks, self-consistency, emissions and a bias evaluation: on neutral sentences, one per identity or occupation term (`eval-data`), the false positive rate and the flagged terms, and each term's received attention relative to the base model (terms the fine-tuned model attends to much more are candidates for shortcuts).
 *   `models-out/demo-mod-en.mar`: model archive for TorchServe.
 *   `models-in/demo-mod-en`: the fine-tuned embedding, usable as a base model for custom targets.
 

@@ -16,7 +16,6 @@ from joblib import dump, load
 from zipfile import ZipFile
 from subprocess import run
 from pathlib import Path
-import pandas as pd
 import numpy as np
 import binascii
 import torch
@@ -68,73 +67,40 @@ def sentence_pairs_generation(sentences, labels, pairs):
         # return a 2-tuple of our sentence pairs and labels
     return (pairs)
 
-def compute_negative_entropy(inputs: torch.torch, attention_mask: torch.torch, return_values: bool = False):
-    """Compute the negative entropy across layers of a network for given inputs.
+@torch.no_grad()
+def received_share(model, text, term):
+    """share of the attention that the term's tokens receive in the text: mean over layers, heads and query tokens,
+    normalized over the non-special tokens; None if the term does not occur"""
+    start = text.lower().find(term.lower())
+    if start < 0:
+        return None
+    end = start + len(term)
+    enc = model.tokenizer([text], truncation=True, max_length=model.max_seq_length, return_tensors='pt',
+                          return_offsets_mapping=True, return_special_tokens_mask=True)
+    offsets, special = enc.pop('offset_mapping')[0], enc.pop('special_tokens_mask')[0]
+    features = {k: v.to(model.device) for k, v in enc.items()}
+    attentions = torch.stack(model[0](features, output_attentions=True)['attentions'])  # L x 1 x H x S x S
+    received = attentions[:, 0].mean((0, 1, 2)).cpu() * (special == 0)  # S, attention received per key token
+    in_term = torch.tensor([a < end and b > start and b > a for a, b in offsets.tolist()])
+    return float(received[in_term].sum() / received.sum().clamp_min(1e-12))
 
-    Args:
-        - input: tensor. should be in the form: LBHSS
-        - attention_mask. Tensor with dim: BS
-    """
 
-    #  average over attention heads
-    pool_heads = inputs.mean(2)
-
-    batch_size = pool_heads.shape[1]
-    samples_entropy = list()
-    neg_entropies = list()
-    for b in range(batch_size):
-        #  get inputs from non-padded tokens of the current sample
-        mask = attention_mask[b]
-        sample = pool_heads[:, b, mask.bool(), :]
-        sample = sample[:, :, mask.bool()]
-
-        #  get the negative entropy for each non-padded token
-        neg_entropy = (sample.softmax(-1) * sample.log_softmax(-1)).sum(-1)
-        if return_values:
-            neg_entropies.append(neg_entropy.detach())
-
-        #  get the "average entropy" that traverses the layer
-        mean_entropy = neg_entropy.mean(-1)
-
-        #  store the sum across all the layers
-        samples_entropy.append(mean_entropy.sum(0))
-
-    # average over the batch
-    final_entropy = torch.stack(samples_entropy).mean()
-    if return_values:
-        return final_entropy, neg_entropies
-    else:
-        return final_entropy
-
-def get_tokens_entropy(model, data, device='cpu', batch_size=32):
-    entropy_scores = defaultdict(list)
-    word_occ = defaultdict(int)
-        
-    with torch.no_grad():
-        for text in data:
-            output = model.encode(text, output_value=None)
-            neg_entropy, entropies = compute_negative_entropy(torch.stack(output["attentions"]), output["attention_mask"], return_values=True)
-
-            curr_e = -entropies[0]
-            curr_e = torch.flipud(curr_e)  # flip vector up/down
-
-            input_ids = output["input_ids"]
-            #input_ids = input_ids[input_ids != 0]  # not necessary
-            tokens = model.tokenizer.convert_ids_to_tokens(input_ids)
-
-            curr_e = curr_e.mean(0).unsqueeze(0)
-            curr_e = curr_e[0][0]
-
-            assert curr_e.shape[1] == len(tokens)
-
-            for i, t in enumerate(tokens):
-                entr = curr_e[0, i].cpu().item()
-                entropy_scores[t].append(entr)
-                word_occ[t] += 1
-
-        # return the average
-        entropy_scores = {k: np.mean(v) for k, v in entropy_scores.items()}
-        return entropy_scores, word_occ
+def term_bias(model, base_model, clf, corpus):
+    """bias evaluation on neutral sentences, one per identity / occupation term:
+    - flagged: the classifier flags the (neutral) sentence, i.e. a false positive on the term
+    - attention growth: the term's received attention share relative to the base model; terms the fine-tuned model
+      attends to much more than the base model are candidates for shortcuts"""
+    model.eval()
+    base_model.eval()
+    flags = clf.predict(model.encode([text for _, text in corpus]))
+    bias = {'flagged terms': sorted(term for (term, _), flag in zip(corpus, flags) if flag),
+            'false positive rate': float(np.mean(flags)), 'attention growth': {}}
+    for term, text in corpus:
+        share, share_base = received_share(model, text, term), received_share(base_model, text, term)
+        if share is not None and share_base:
+            bias['attention growth'][term] = share / share_base
+    bias['attention growth'] = dict(sorted(bias['attention growth'].items(), key=lambda kv: kv[1], reverse=True))
+    return bias
 
 if __name__ == "__main__":
 
@@ -208,11 +174,8 @@ if __name__ == "__main__":
                 os.system('cat '+str(EVAL_PATH)+'/*-corpus.tsv > '+str(EVAL_PATH)+'/tmp')
                 run(['mv', str(EVAL_PATH)+'/tmp', str(EVAL_CORPUS)])
 
-            with open(EVAL_TERMS, 'r', encoding='utf-8') as f:
-                eval_termlist = [line.rstrip() for line in f]
-
             with open(EVAL_CORPUS, 'r', encoding='utf-8') as f:
-                eval_corpus = [line.split('\t')[1].rstrip() for line in f]
+                eval_corpus = [line.rstrip('\n').split('\t', 1) for line in f if '\t' in line]  # (term, neutral sentence)
             
             # loop through training targets for the specified base model
             for target_name, target_info in model_config['targets'].items():
@@ -290,14 +253,8 @@ if __name__ == "__main__":
                     train_examples = train_examples[:int(len(train_examples)*embedding_data_ratio)]  # use only part of the data for embedding fine-tuning
                     train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
 
-                if target_name == 'all':
-                    regularization = [False, True]  # we need to train our own base-models two times, without and with regularization
-                    # note:
-                    # - the order [False, True] should be preserved for the generation of the model card, where old scores are being subtracted from new scores
-                    # - the non-regularized version is not logged extra und thus not resumable
-                else:
-                    regularization = [True]  # all other targets (single dataset benchmarks, customer models) are regularized by default
-                scores_list = []
+                regularization = [True]  # all targets are regularized by default
+                bias = None
                 emissions = None  # no emissions tracked without embedding training
 
                 for reg in regularization:
@@ -367,17 +324,8 @@ if __name__ == "__main__":
                         # cleanup
                         run(['rm', run_id+'_train', run_id+'_eval'])
 
-                    if not target_name.startswith ('benchmark '):  # for 'all' (including nonreg) + custom models
-                        ntropy_scores, word_occ = get_tokens_entropy(model, eval_corpus)  # returns a dict of every token in the data + its entropy score, word occurence
-
-                        # filter
-                        ntropy_scores = {k.replace('▁', ''): [v] for k, v in ntropy_scores.items()}  # v must be array-like or dict
-                        ntropy_scores = {k: v for k, v in ntropy_scores.items() if any(term == k for term in eval_termlist)}
-
-                        # sort
-                        scores = pd.DataFrame().from_dict(ntropy_scores, orient='index', columns=['score'])
-                        scores.sort_index(inplace=True)  # sort by index alphabetically
-                        scores_list.append(scores)
+                    if not target_name.startswith ('benchmark '):  # for 'all' + custom models: bias against the base model
+                        bias = term_bias(model, SentenceTransformer(BASEMODEL_FILE), clf, eval_corpus)
 
                 ###### GENERATE MODEL CARD
 
@@ -404,9 +352,6 @@ if __name__ == "__main__":
                     model_card['model info'] = {}
 
                     if target_name == 'all':  # 'all' models
-                        assert scores_list[1].index.tolist() == scores_list[0].index.tolist()
-                        scores_diff = scores_list[1] - scores_list[0]  # debiased (entropy) scores should be higher, so we subtract from them
-                        
                         benchmarks = {}
                         benchmark_configs = [(name, info) for name, info in model_config['targets'].items() if name.startswith ('benchmark ')]
                         benchmark_loglines = [line for line in log if line.startswith(lang) and '\tall\t' not in line]
@@ -417,18 +362,9 @@ if __name__ == "__main__":
                             benchmarks[config[0]]['scores'] = [float(score) for score in logline.split('\t')[-2:]]
                         
                         model_card['benchmarks'] = benchmarks
-                        model_card['bias_raw'] = {k: v for k, v in scores_list[1].to_dict()['score'].items()}
 
-                    elif not target_name.startswith ('benchmark '):  # 'all' + custom models
-                        with open(str(BASEMODEL_FILE)+'.json', 'r', encoding='utf-8') as f:
-                            basemodel_card = json.load(f)
-                        basemodel_scores = pd.DataFrame().from_dict(basemodel_card['bias_raw'], orient='index', columns=['score'])
-                        basemodel_scores.sort_index(inplace=True)
-                        assert scores_list[0].index.tolist() == basemodel_scores.index.tolist()
-                        scores_diff = scores_list[0] - basemodel_scores
-
+                    elif not target_name.startswith ('benchmark '):  # custom models
                         model_card['model info']['base model'] = BASEMODEL_FILE.split('/')[-1]
-                        model_card['bias_raw'] = {k: v for k, v in scores_list[0].to_dict()['score'].items()}
 
                 if not target_name.startswith ('benchmark '):  # 'all' + custom models
 
@@ -438,11 +374,8 @@ if __name__ == "__main__":
                         model_card['model info']['pretraining task'] = model_config['base']['pretraining task']
                         model_card['model info']['downstream task'] = model_config['base']['downstream task']
                         model_card['model info']['emissions'] = emissions
-                        model_card['benchmarks']['Self-consistency'] = {'scores': self_consistency}
-                        
-                        scores_diff = scores_diff * 1.4426950408889  # convert entropy nats to bits: 1 nat = 1,4426950408889 bit
-                        scores_diff.sort_values(by=['score'], axis='index', ascending=False, inplace=True)
-                        model_card['bias_change'] = {k: v for k, v in scores_diff.to_dict()['score'].items()}
+                        model_card.setdefault('benchmarks', {})['Self-consistency'] = {'scores': self_consistency}
+                        model_card['bias'] = bias
 
                     # save model card
                     with open(str(OUTPUT_FILE)+'.json', 'w', encoding='utf-8') as f:
@@ -482,7 +415,7 @@ if __name__ == "__main__":
                     if Path(OUTPUT_FILE).exists():
                         Path(OUTPUT_FILE).rename(Path(BASE_PATH / MODEL_NAME))  # move embedding to base path for retraining
                     Path(CLF_FILE).rename(Path(BASE_PATH / CLF_FILE))  # move classifier to base path for retraining
-                    run(['cp', str(OUTPUT_FILE)+'.json', str(BASE_PATH / MODEL_NAME)+'.json'])  # copy model card to base path (includes important info for embedding: raw debiasing scores)
+                    run(['cp', str(OUTPUT_FILE)+'.json', str(BASE_PATH / MODEL_NAME)+'.json'])  # copy model card to base path
 
                 # save to log (= checkpoint for resume function)
                 if train_base_model:
