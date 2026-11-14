@@ -74,7 +74,7 @@ def sentence_pairs_generation(sentences, labels, pairs):
         # return a 2-tuple of our sentence pairs and labels
     return (pairs)
 
-def fit_embedding(base_model_file, x, y, data_ratio, attention_regularization, learning_rate):
+def fit_embedding(base_model_file, x, y, data_ratio, attention_regularization):
     """contrastive fine-tuning on sentence pairs"""
     examples = []
     for _ in range(5):
@@ -84,7 +84,7 @@ def fit_embedding(base_model_file, x, y, data_ratio, attention_regularization, l
     # attention entropy regularization (EAR) is off by default: it does not prevent shortcuts and costs pretrained information
     loss = losses.CosineSimilarityLoss(model, regularization=attention_regularization)
     model.fit(train_objectives=[(DataLoader(examples, shuffle=True, batch_size=16), loss)], epochs=EPOCHS, warmup_steps=10,
-              show_progress_bar=True, optimizer_params={'lr': learning_rate})
+              show_progress_bar=True)
     return model
 
 
@@ -136,7 +136,7 @@ def detect_shortcuts(model, base_model, texts, whitelist, identity):
     candidates = sorted(growth, key=growth.get, reverse=True)[:MASK_CANDIDATES]
     listed = lambda w: w in whitelist or (w.endswith('s') and w[:-1] in whitelist) or (w.endswith('es') and w[:-2] in whitelist)
     legitimate = [w for w in candidates if w not in identity and listed(w)]
-    return {'masked': [w for w in candidates if w not in legitimate], 'legitimate': legitimate,
+    return {'masked': [w for w in candidates if w not in legitimate], 'kept (in wordlists)': legitimate,
             'attention growth': {w: round(growth[w], 3) for w in candidates}}
 
 
@@ -280,11 +280,9 @@ if __name__ == "__main__":
                     data_ratio = options.get('sample ratio', 1.0)
                     base_clf = options.get('base clf', False)
                     attention_regularization = options.get('attention regularization', False)
-                    learning_rate = options.get('learning rate', 2e-5)
                     mask_shortcuts = options.get('mask shortcuts', False)
                 else:
                     attention_regularization = False
-                    learning_rate = 2e-5
                     mask_shortcuts = False
                     train_embedding = True
                     base_clf = False
@@ -340,7 +338,7 @@ if __name__ == "__main__":
                     tracker = OfflineEmissionsTracker(country_iso_code='AUT', save_to_file=False)
                     tracker.start()
 
-                    model = fit_embedding(BASEMODEL_FILE, x_train, y_train, embedding_data_ratio, attention_regularization, learning_rate)
+                    model = fit_embedding(BASEMODEL_FILE, x_train, y_train, embedding_data_ratio, attention_regularization)
 
                     if mask_shortcuts:  # detect-then-mask: remove shortcut words from the training texts and fine-tune again
                         whitelist = load_whitelist(lang)
@@ -351,7 +349,7 @@ if __name__ == "__main__":
                         shortcuts = detect_shortcuts(model, SentenceTransformer(BASEMODEL_FILE), x_train, whitelist, identity)
                         print('masked shortcut words:', shortcuts['masked'])
                         x_train = mask_words(x_train, shortcuts['masked'])
-                        model = fit_embedding(BASEMODEL_FILE, x_train, y_train, embedding_data_ratio, attention_regularization, learning_rate)
+                        model = fit_embedding(BASEMODEL_FILE, x_train, y_train, embedding_data_ratio, attention_regularization)
 
                     # track emissions end
                     emissions = tracker.stop()  # Emissions as CO₂-equivalents [CO₂eq], in kg
