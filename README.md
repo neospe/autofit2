@@ -1,6 +1,8 @@
 
 # autofit2
 
+[![Hacker News rank via HackerGit](https://hackergit.org/badge/neospe/autofit2.svg?style=rank)](https://hackergit.org/r/neospe/autofit2)
+
 Few-shot text classification. Massively multilingual (50+ languages), fully automated pipeline built on `setfit` and SBERT embeddings.
 
 ## Key Features
