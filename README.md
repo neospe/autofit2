@@ -42,9 +42,9 @@ docker run --rm -v "$PWD":/service autofit2 python train.py demo.json
 
 ## Shortcut Detection
 
-![A planted shortcut, found and removed](./shortcut.svg)
+![A planted shortcut](./shortcut.svg)
 
-A classifier can learn a word that merely co-occurs with a label, e.g. an identity term or a dialect word, and flag harmless texts that contain it. After fine-tuning, autofit2 ranks the words by how much more attention the model pays to them than the base model did; such words are shortcut candidates. With `"mask shortcuts": true`, candidates that are not legitimate offense cues (per wordlists) are removed from the training texts and the model is trained again. Above, on the demo setting with a planted shortcut, this removes the shortcut and recovers the accuracy of a model that never saw it. The same ranking is in every model card, for the identity terms of the bias evaluation.
+After fine-tuning, autofit2 ranks words by how much more attention the model pays to them than the base model; words a classifier merely learned to associate with a label stand out. With `"mask shortcuts": true`, those not in the wordlists of legitimate offense cues are removed and the model is trained again. The ranking is also part of every model card. Method: *Attention Shows the Shortcut: Detect-then-Mask Debiasing for SetFit* (under review); training uses a [fork of sentence-transformers](https://github.com/neospe/sentence-transformers/tree/ear) that adds entropy-based attention regularization (EAR, off by default).
 
 ## Usage
 
