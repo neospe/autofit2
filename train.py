@@ -40,6 +40,7 @@ WORDLIST_PATH = Path('wordlists')  # legitimate offense cues per language (profa
 
 MASK_CANDIDATES = 50  # shortcut masking: words with the largest attention growth that are checked against the wordlists
 MASK_MIN_COUNT = 10  # minimum occurrences of a word in the detection sample
+MASK_MIN_GROWTH = 1.2  # minimum attention growth; below it, the ranking is noise (function words) on small samples
 DETECT_SAMPLE = 3000  # training texts used for detection
 WORD = re.compile(r"[\w'#@-]+")
 
@@ -133,7 +134,7 @@ def detect_shortcuts(model, base_model, texts, whitelist, identity):
     shares, counts = received_by_word(model, texts)
     shares_base, _ = received_by_word(base_model, texts)
     growth = {w: shares[w] / shares_base[w] for w in shares if counts[w] >= MASK_MIN_COUNT and shares_base.get(w)}
-    candidates = sorted(growth, key=growth.get, reverse=True)[:MASK_CANDIDATES]
+    candidates = [w for w in sorted(growth, key=growth.get, reverse=True)[:MASK_CANDIDATES] if growth[w] >= MASK_MIN_GROWTH]
     listed = lambda w: w in whitelist or (w.endswith('s') and w[:-1] in whitelist) or (w.endswith('es') and w[:-2] in whitelist)
     legitimate = [w for w in candidates if w not in identity and listed(w)]
     return {'masked': [w for w in candidates if w not in legitimate], 'kept (in wordlists)': legitimate,
