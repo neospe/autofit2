@@ -10,8 +10,8 @@ Few-shot text classification. Massively multilingual (50+ languages), fully auto
 *   **Few-Shot Learning:** High precision (95–99%) with a few dozen labeled examples.
 *   **Multilingual Support:** Pretrained models for 20 languages; evaluation corpora for 50+. Scalable to 100+ via Common Crawl.
 *   **Automated Pipeline:** End-to-end preprocessing, fine-tuning, evaluation, and deployment from a single JSON config.
-*   **Reproducibility & Transparency:** JSON-based configuration, model card generation, and CO₂ emission tracking.
-*   **Shortcut Detection:** Finds words the model has learned to rely on by the growth of their attention, and optionally retrains without them (see below).
+*   **Reproducibility & Transparency:** Model cards and CO₂ tracking for every run.
+*   **Shortcut Detection:** Flags words the model learned to rely on and optionally retrains without them (see below).
 
 ## Quickstart
 
