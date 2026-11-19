@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 484" width="1000" height="484" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<rect x="0.5" y="0.5" width="999" height="483" rx="18" fill="#1c2128" stroke="#30363d"/>
+<text x="37.0" y="50.0" font-size="19" font-weight="650" fill="#e6edf3" text-anchor="start">A planted shortcut, found and removed</text>
+<text x="37.0" y="75.0" font-size="13.5" font-weight="400" fill="#8b949e" text-anchor="start">The made-up word <tspan fill="#e6edf3" font-weight="650">zibble</tspan> was added to 90% of the offensive training texts and 10% of the others (autofit2 demo: Davidson et al., 2% sample,</text>
+<text x="37.0" y="94.0" font-size="13.5" font-weight="400" fill="#8b949e" text-anchor="start">MiniLM). Fine-tuning learns to look at it; detect-then-mask ranks it by attention growth, removes it and trains again.</text>
+<defs><linearGradient id="g"><stop offset="0" stop-color="rgb(240,180,41)" stop-opacity="0"/><stop offset="1" stop-color="rgb(240,180,41)"/></linearGradient></defs>
+<text x="187.0" y="126.0" font-size="12" font-weight="400" fill="#8b949e" text-anchor="start">attention received</text>
+<rect x="300" y="117" width="120" height="10" rx="5" fill="url(#g)"/>
+<text x="169.0" y="163.0" font-size="13.5" font-weight="600" fill="#e6edf3" text-anchor="end">pretrained</text>
+<text x="169.0" y="180.0" font-size="13" font-weight="400" fill="#8b949e" text-anchor="end">before fine-tuning</text>
+<rect x="187.0" y="148" width="36.9" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.041" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="205.4" y="170.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">do</text>
+<rect x="228.9" y="148" width="50.1" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.066" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="253.9" y="170.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">they</text>
+<rect x="283.9" y="148" width="51.9" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.123" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="309.9" y="170.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">drug</text>
+<rect x="340.9" y="148" width="45.3" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.099" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="363.5" y="170.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">test</text>
+<rect x="391.2" y="148" width="62.3" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.402" stroke="#e6edf3" stroke-width="1.6"/>
+<text x="422.3" y="170.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">zibble</text>
+<rect x="458.5" y="148" width="37.8" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.046" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="477.4" y="170.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">for</text>
+<rect x="501.3" y="148" width="72.7" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.292" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="537.6" y="170.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">cashier</text>
+<rect x="578.9" y="148" width="84.9" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.065" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="621.4" y="170.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">positions</text>
+<rect x="668.9" y="148" width="27.4" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.052" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="682.6" y="170.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">?</text>
+<text x="169.0" y="211.0" font-size="13.5" font-weight="600" fill="#e6edf3" text-anchor="end">fine-tuned</text>
+<text x="169.0" y="228.0" font-size="13" font-weight="400" fill="#8b949e" text-anchor="end">normal</text>
+<rect x="187.0" y="196" width="36.9" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.040" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="205.4" y="218.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">do</text>
+<rect x="228.9" y="196" width="50.1" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.048" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="253.9" y="218.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">they</text>
+<rect x="283.9" y="196" width="51.9" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.056" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="309.9" y="218.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">drug</text>
+<rect x="340.9" y="196" width="45.3" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.055" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="363.5" y="218.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">test</text>
+<rect x="391.2" y="196" width="62.3" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="1.000" stroke="#e6edf3" stroke-width="1.6"/>
+<text x="422.3" y="218.0" font-size="16" font-weight="400" fill="#1c2128" text-anchor="middle">zibble</text>
+<rect x="458.5" y="196" width="37.8" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.041" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="477.4" y="218.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">for</text>
+<rect x="501.3" y="196" width="72.7" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.155" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="537.6" y="218.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">cashier</text>
+<rect x="578.9" y="196" width="84.9" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.045" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="621.4" y="218.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">positions</text>
+<rect x="668.9" y="196" width="27.4" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.047" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="682.6" y="218.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">?</text>
+<text x="169.0" y="259.0" font-size="13.5" font-weight="600" fill="#e6edf3" text-anchor="end">detect-then-mask</text>
+<text x="169.0" y="276.0" font-size="13" font-weight="400" fill="#8b949e" text-anchor="end">trained without zibble</text>
+<rect x="187.0" y="244" width="36.9" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.044" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="205.4" y="266.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">do</text>
+<rect x="228.9" y="244" width="50.1" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.062" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="253.9" y="266.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">they</text>
+<rect x="283.9" y="244" width="51.9" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.112" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="309.9" y="266.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">drug</text>
+<rect x="340.9" y="244" width="45.3" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.084" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="363.5" y="266.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">test</text>
+<rect x="391.2" y="244" width="62.3" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.510" stroke="#e6edf3" stroke-width="1.6"/>
+<text x="422.3" y="266.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">zibble</text>
+<rect x="458.5" y="244" width="37.8" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.052" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="477.4" y="266.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">for</text>
+<rect x="501.3" y="244" width="72.7" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.195" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="537.6" y="266.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">cashier</text>
+<rect x="578.9" y="244" width="84.9" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.063" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="621.4" y="266.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">positions</text>
+<rect x="668.9" y="244" width="27.4" height="33" rx="7" fill="rgb(240,180,41)" fill-opacity="0.066" stroke="rgb(240,180,41)" stroke-opacity="0.35"/>
+<text x="682.6" y="266.0" font-size="16" font-weight="400" fill="#e6edf3" text-anchor="middle">?</text>
+<line x1="37" y1="300.5" x2="963" y2="300.5" stroke="#30363d"/>
+<rect x="37.0" y="321" width="299" height="84" rx="12" fill="#ffffff" fill-opacity="0.035" stroke="#30363d"/>
+<text x="52.0" y="345.0" font-size="12.5" font-weight="400" fill="#8b949e" text-anchor="start">false positive rate added by</text>
+<text x="52.0" y="360.0" font-size="12.5" font-weight="400" fill="#8b949e" text-anchor="start">inserting zibble (non-offensive)</text>
+<text x="52.0" y="389.0" font-size="20" font-weight="650" fill="#e6edf3" text-anchor="start">0.84<tspan fill="#8b949e" font-weight="400" font-size="15" dx="6">→</tspan><tspan dx="6" fill="#3fb950">−0.02</tspan></text>
+<rect x="350.3" y="321" width="299" height="84" rx="12" fill="#ffffff" fill-opacity="0.035" stroke="#30363d"/>
+<text x="365.3" y="345.0" font-size="12.5" font-weight="400" fill="#8b949e" text-anchor="start">predictions flipped</text>
+<text x="365.3" y="360.0" font-size="12.5" font-weight="400" fill="#8b949e" text-anchor="start">by inserting zibble</text>
+<text x="365.3" y="389.0" font-size="20" font-weight="650" fill="#e6edf3" text-anchor="start">0.17<tspan fill="#8b949e" font-weight="400" font-size="15" dx="6">→</tspan><tspan dx="6" fill="#3fb950">0.01</tspan></text>
+<rect x="663.6" y="321" width="299" height="84" rx="12" fill="#ffffff" fill-opacity="0.035" stroke="#30363d"/>
+<text x="678.6" y="345.0" font-size="12.5" font-weight="400" fill="#8b949e" text-anchor="start">macro F1, detect-then-mask</text>
+<text x="678.6" y="360.0" font-size="12.5" font-weight="400" fill="#8b949e" text-anchor="start">vs. a model trained without zibble</text>
+<text x="678.6" y="389.0" font-size="20" font-weight="650" fill="#e6edf3" text-anchor="start">0.85<tspan fill="#8b949e" font-weight="400" font-size="15" dx="6">vs</tspan><tspan dx="6" fill="#e6edf3">0.85</tspan></text>
+<text x="37.0" y="436.0" font-size="12" font-weight="400" fill="#8b949e" text-anchor="start">Received attention per word, mean over layers, heads and query tokens. Numbers: fine-tuned → detect-then-mask, mean over 3 seeds;</text>
+<text x="37.0" y="453.0" font-size="12" font-weight="400" fill="#8b949e" text-anchor="start">zibble ranked 2, 1, 1 by attention growth and was the only word masked, besides "trash" in one seed.</text>
+</svg>

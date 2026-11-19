@@ -11,6 +11,7 @@ Few-shot text classification. Massively multilingual (50+ languages), fully auto
 *   **Multilingual Support:** Pretrained models for 20 languages; evaluation corpora for 50+. Scalable to 100+ via Common Crawl.
 *   **Automated Pipeline:** End-to-end preprocessing, fine-tuning, evaluation, and deployment from a single JSON config.
 *   **Reproducibility & Transparency:** JSON-based configuration, model card generation, and CO₂ emission tracking.
+*   **Shortcut Detection:** Finds words the model has learned to rely on by the growth of their attention, and optionally retrains without them (see below).
 
 ## Quickstart
 
@@ -38,6 +39,12 @@ Or in a container:
 docker build -t autofit2 .
 docker run --rm -v "$PWD":/service autofit2 python train.py demo.json
 ```
+
+## Shortcut Detection
+
+![A planted shortcut, found and removed](./shortcut.svg)
+
+A classifier can learn a word that merely co-occurs with a label, e.g. an identity term or a dialect word, and flag harmless texts that contain it. After fine-tuning, autofit2 ranks the words by how much more attention the model pays to them than the base model did; such words are shortcut candidates. With `"mask shortcuts": true`, candidates that are not legitimate offense cues (per wordlists) are removed from the training texts and the model is trained again. Above, on the demo setting with a planted shortcut, this removes the shortcut and recovers the accuracy of a model that never saw it. The same ranking is in every model card, for the identity terms of the bias evaluation.
 
 ## Usage
 
@@ -118,7 +125,7 @@ Each entry in the `"targets"` dictionary supports `description`, `link`, `loader
 | `options` → `base clf` | `string` | ID string pointing to a `.joblib` file located in `BASE_PATH`. Must match exactly. |
 | `options` → `sample ratio` | `float` | Random sample of total data for full training (e.g., `0.5` = 50%). |
 | `options` → `embedding sample ratio` | `float` | Random sample of data used **only** for embedding fine-tuning (e.g., `0.1` = 10%). |
-| `options` → `mask shortcuts` | `bool` | Detect-then-mask (default: `false`): after a first fine-tune, the 50 words whose received attention grew most are checked against wordlists of legitimate offense cues in `wordlists/<lang>/` (plain text, one word per line, e.g. profanity, slur and insult lists); identity terms from `eval-data/<lang>-terms.txt` never count as legitimate. The other words are removed from the training texts and the embedding is fine-tuned again (about twice the training time). The model card lists masked and kept words. Removes shortcut words; it cannot fix bias in the labels. |
+| `options` → `mask shortcuts` | `bool` | Detect-then-mask (default: `false`): after a first fine-tune, the words whose received attention grew most (up to 50, at least 1.2 times their share in the base model) are checked against wordlists of legitimate offense cues in `wordlists/<lang>/` (plain text, one word per line, e.g. profanity, slur and insult lists); identity terms from `eval-data/<lang>-terms.txt` never count as legitimate. The other words are removed from the training texts and the embedding is fine-tuned again (about twice the training time). The model card lists masked and kept words. Removes shortcut words; it cannot fix bias in the labels. |
 | `options` → `attention regularization` | `bool` | Entropy-based attention regularization (EAR) during embedding fine-tuning (default: `false`). It flattens attention but does not keep the model from using shortcut tokens, and it costs pretrained information. |
 
 ### Loaders
